@@ -38,8 +38,13 @@ export class UserController {
         { username: result.user.username },
         UtilService.getJwtSecret()
       );
-      res.status(200).send({ token: token });
+      res.status(200).send({ token: token, username: result.user.username, id: result.user._id });
     }
+  }
+
+  public async isTokenActive(req: Request, res: Response, next: NextFunction) {
+    L.info("isTokenActive called");
+    res.status(200).send();
   }
 
   async all(req: Request, res: Response, next: NextFunction) {

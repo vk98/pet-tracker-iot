@@ -1,0 +1,1 @@
+const String BACKEND_URL = "http://77.70.98.75:6969/api";

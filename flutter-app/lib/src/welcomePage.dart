@@ -95,7 +95,7 @@ class _WelcomePageState extends State<WelcomePage> {
     return RichText(
       textAlign: TextAlign.center,
       text: TextSpan(
-          text: 'd',
+          text: 'Lora',
           style: GoogleFonts.portLligatSans(
             textStyle: Theme.of(context).textTheme.display1,
             fontSize: 30,
@@ -104,11 +104,11 @@ class _WelcomePageState extends State<WelcomePage> {
           ),
           children: [
             TextSpan(
-              text: 'ev',
+              text: 'pet',
               style: TextStyle(color: Colors.black, fontSize: 30),
             ),
             TextSpan(
-              text: 'rnz',
+              text: 'tracker',
               style: TextStyle(color: Colors.white, fontSize: 30),
             ),
           ]),
