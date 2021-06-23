@@ -1,36 +1,12 @@
-/*
- * HelTec Automation(TM) LoRaWAN 1.0.2 OTAA example use OTAA, CLASS A
- *
- * Function summary:
- *
- * - use internal RTC(150KHz);
- *
- * - Include stop mode and deep sleep mode;
- *
- * - 15S data send cycle;
- *
- * - Informations output via serial(115200);
- *
- * - Only ESP32 + LoRa series boards can use this library, need a license
- *   to make the code run(check you license here: http://www.heltec.cn/search );
- *
- * You can change some definition in "Commissioning.h" and "LoRaMac-definitions.h"
- *
- * HelTec AutoMation, Chengdu, China.
- * 成都惠利特自动化科技有限公司
- * https://heltec.org
- * support@heltec.cn
- *
- *this project also release in GitHub:
- *https://github.com/HelTecAutomation/ESP32_LoRaWAN
-*/
 
 #include <ESP32_LoRaWAN.h>
 #include "Arduino.h"
 #define CAYENNELPP
 #ifdef CAYENNELPP
+#include <TinyGPS++.h>
 #include <CayenneLPP.h>
 #endif
+
 /*license for Heltec ESP32 LoRaWan, quary your ChipID relevant license: http://resource.heltec.cn/search */
 uint32_t  license[4] = {0x87545ABD,0x01747840,0x20DB8A5D,0x342104D3};
 /* OTAA para*/
@@ -97,20 +73,44 @@ uint8_t debugLevel = LoRaWAN_DEBUG_LEVEL;
 /*LoraWan region, select in arduino IDE tools*/
 LoRaMacRegion_t loraWanRegion = ACTIVE_REGION;
 
+CayenneLPP lpp(50);
 
-static void prepareTxFrame( uint8_t port )
+static const int RXPin = 36, TXPin = 37;
+static const uint32_t GPSBaud = 9600;
+
+TinyGPSPlus gps;
+
+//static void prepareGpsData(unsigned long ms)
+//{
+//  unsigned long start = millis();
+//  do 
+//  {
+//    while (Serial2.available())
+//      gps.encode(Serial2.read());
+//  } while (millis() - start < ms);
+//}
+
+static void prepareTxFrame( uint8_t port, float lat, float lng, float alt)
 {
-    CayenneLPP lpp(50);
     lpp.reset();
-    float lat = 42;
-    float lng = 23;
-    float alt = 0;
-     
     lpp.addGPS(1, lat, lng, alt);
     appDataSize = lpp.getSize();//AppDataSize max value is 64
+    uint8_t* lppBuf = lpp.getBuffer();
     for(int i = 0; i < lpp.getSize(); i++){
-      appData[i] = lpp.getBuffer()[i];
+      appData[i] = lppBuf[i];
     }
+}
+
+static void smartDelay(unsigned long ms)
+{
+  unsigned long start = millis();
+  do 
+  {
+    while(Serial2.available())
+    {
+        gps.encode(Serial2.read());
+    }
+  } while (millis() - start < ms);
 }
 
 // Add your initialization code here
@@ -121,39 +121,72 @@ void setup()
     LoRaWAN.displayMcuInit();
   }
   Serial.begin(115200);
+  Serial1.begin(GPSBaud, SERIAL_8N1, RXPin, TXPin);
   while (!Serial);
+  while (!Serial1);
   SPI.begin(SCK,MISO,MOSI,SS);
   Mcu.init(SS,RST_LoRa,DIO0,DIO1,license);
   deviceState = DEVICE_STATE_INIT;
 }
 
+int lastUpdate = 0;
 // The loop function is called in an endless loop
 void loop()
 {
+    while(Serial1.available())
+    {
+        gps.encode(Serial1.read());
+    }
+
+//    if (gps.location.isUpdated())
+//    {
+//      Serial.println("gps location is updated ");
+//    }
+//
+//    if (gps.satellites.isUpdated())
+//    {
+//      Serial.println("gps satellites is updated ");
+//    }
+
+//        float lat = 12.4;
+//    float lng = 10.2;
+//    float alt = 123;
+
   switch( deviceState )
   {
     case DEVICE_STATE_INIT:
     {
       LoRaWAN.init(loraWanClass,loraWanRegion);
+      Serial.println("init");
       break;
     }
     case DEVICE_STATE_JOIN:
     {
       LoRaWAN.displayJoining();
       LoRaWAN.join();
+      Serial.println("join");
       break;
     }
     case DEVICE_STATE_SEND:
     {
+      Serial.println(gps.location.lat(), 6); // Latitude in degrees (double)
+      Serial.println(gps.location.lng(), 6); // Longitude in degrees (double)
+      Serial.println(gps.altitude.value()); // Raw altitude in centimeters (i32)
+      Serial.println(gps.satellites.value()); // Number of satellites in use (u32)
+      Serial.println(gps.hdop.value()); // Horizontal Dim. of Precision (100ths-i32)
+      float lat = gps.location.lat();
+      float lng = gps.location.lng();
+      float alt = gps.altitude.meters();
       LoRaWAN.displaySending();
-      prepareTxFrame( appPort );
+      prepareTxFrame( appPort, lat, lng, alt );
       LoRaWAN.send(loraWanClass);
       deviceState = DEVICE_STATE_CYCLE;
+      Serial.println("send");
       break;
     }
     case DEVICE_STATE_CYCLE:
     {
-      // Schedule next packet transmission
+      //Schedule next packet transmission
       txDutyCycleTime = appTxDutyCycle + randr( -APP_TX_DUTYCYCLE_RND, APP_TX_DUTYCYCLE_RND );
       LoRaWAN.cycle(txDutyCycleTime);
       deviceState = DEVICE_STATE_SLEEP;
@@ -163,11 +196,14 @@ void loop()
     {
       LoRaWAN.displayAck();
       LoRaWAN.sleep(loraWanClass,debugLevel);
+     
+      //Serial.println("cycle");
       break;
     }
     default:
     {
       deviceState = DEVICE_STATE_INIT;
+      Serial.println("default");
       break;
     }
   }
