@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_login_signup/src/Services/userService.dart';
 import 'package:flutter_login_signup/src/signup.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -8,12 +9,22 @@ class LoginPage extends StatefulWidget {
   LoginPage({Key key, this.title}) : super(key: key);
 
   final String title;
-
   @override
   _LoginPageState createState() => _LoginPageState();
 }
 
 class _LoginPageState extends State<LoginPage> {
+  final TextEditingController usernameController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+  @override
+  void dispose() {
+    // Clean up the controller when the widget is disposed.
+    usernameController.dispose();
+    passwordController.dispose();
+
+    super.dispose();
+  }
+
   Widget _backButton() {
     return InkWell(
       onTap: () {
@@ -35,7 +46,7 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Widget _entryField(String title, {bool isPassword = false}) {
+  Widget _entryField(TextEditingController textController, String title, {bool isPassword = false}) {
     return Container(
       margin: EdgeInsets.symmetric(vertical: 10),
       child: Column(
@@ -53,14 +64,20 @@ class _LoginPageState extends State<LoginPage> {
               decoration: InputDecoration(
                   border: InputBorder.none,
                   fillColor: Color(0xfff3f3f4),
-                  filled: true))
+                  filled: true),
+              controller: textController
+            )
         ],
       ),
     );
   }
 
   Widget _submitButton() {
-    return Container(
+    return InkWell(
+      onTap: () {
+        UserService().login(context, usernameController.text, passwordController.text);
+      },
+      child: Container(
       width: MediaQuery.of(context).size.width,
       padding: EdgeInsets.symmetric(vertical: 15),
       alignment: Alignment.center,
@@ -81,7 +98,9 @@ class _LoginPageState extends State<LoginPage> {
         'Login',
         style: TextStyle(fontSize: 20, color: Colors.white),
       ),
+    )
     );
+    
   }
 
   Widget _divider() {
@@ -202,7 +221,7 @@ class _LoginPageState extends State<LoginPage> {
     return RichText(
       textAlign: TextAlign.center,
       text: TextSpan(
-          text: 'd',
+          text: 'Lora',
           style: GoogleFonts.portLligatSans(
             textStyle: Theme.of(context).textTheme.display1,
             fontSize: 30,
@@ -211,11 +230,11 @@ class _LoginPageState extends State<LoginPage> {
           ),
           children: [
             TextSpan(
-              text: 'ev',
+              text: 'pet',
               style: TextStyle(color: Colors.black, fontSize: 30),
             ),
             TextSpan(
-              text: 'rnz',
+              text: 'tracker',
               style: TextStyle(color: Color(0xffe46b10), fontSize: 30),
             ),
           ]),
@@ -225,8 +244,8 @@ class _LoginPageState extends State<LoginPage> {
   Widget _emailPasswordWidget() {
     return Column(
       children: <Widget>[
-        _entryField("Email id"),
-        _entryField("Password", isPassword: true),
+        _entryField(usernameController, "Username"),
+        _entryField(passwordController, "Password", isPassword: true),
       ],
     );
   }
