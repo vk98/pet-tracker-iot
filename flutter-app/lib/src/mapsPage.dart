@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_login_signup/src/Models/Location.dart';
 import 'package:flutter_login_signup/src/Services/locationService.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
@@ -38,10 +39,11 @@ class _MapsPageState extends State<MapsPage> {
   checkForNewCoords() {
     getLocation().then((locations) => 
       setState(() { 
-        markers = locations.map((location) => Marker(
+        List<Location> locList = locations.toList();
+        markers = locList.map((location) => Marker(
           markerId: MarkerId("dog"),
           position: LatLng(location.lat, location.lng),
-        ));
+        )).toList();
       })
     );
   }
